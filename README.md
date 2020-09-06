@@ -233,3 +233,27 @@ Loaded image ID: sha256:484fba741352c3b252850d45a112001e064f8bbcc6670ad9e0871d3a
 Tagging 484fba741352c3b252850d45a112001e064f8bbcc6670ad9e0871d3ac592616f as bazel:nodejs_image
 Hello world
 ```
+
+# Towards reproducable builds
+```dockerfile
+Dockerfile
+---
+# 3.5.0
+FROM gcr.io/cloud-marketplace-containers/google/bazel@sha256:ace9881e6e9c5d48b5fd637321361aeffe54000265894a65f7d818dc1065bd80
+
+COPY . .
+```
+
+Notice there is no nodejs or yarn in the `Dockerfile`
+
+Edit `.bazelversion`
+```
+.bazelversion
+---
+3.5.0
+```
+
+```sh
+$ docker build --network=host -t test .
+$ docker run -v/var/run/docker.sock:/var/run/docker.sock --network=host test run //:nodejs_image
+```
