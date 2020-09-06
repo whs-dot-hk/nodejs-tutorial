@@ -1,0 +1,26 @@
+exports_files(
+    ["tsconfig.json"],
+    visibility = ["//visibility:public"],
+)
+
+package(default_visibility = ["//visibility:public"])
+
+load("@npm//@bazel/typescript:index.bzl", "ts_library")
+
+ts_library(
+    name = "index",
+    srcs = ["index.ts"],
+    deps = [
+        "@npm//@types/node",
+    ],
+)
+
+load("@io_bazel_rules_docker//nodejs:image.bzl", "nodejs_image")
+
+nodejs_image(
+    name = "nodejs_image",
+    data = [
+        ":index",
+    ],
+    entry_point = "index.ts",
+)

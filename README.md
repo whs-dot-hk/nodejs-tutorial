@@ -70,3 +70,166 @@ package.json
 $ yarn build
 $ yarn start
 ```
+
+# Install bazel
+https://docs.bazel.build/versions/master/install.html
+
+```yaml
+- become: "yes"
+  get_url:
+    dest: /usr/local/bin/bazel
+    mode: "0755"
+    url: >-
+      https://github.com/bazelbuild/bazel/releases/download/3.5.0/bazel-3.5.0-linux-x86_64
+  name: Install bazel
+```
+
+# Install docker
+https://docs.docker.com/engine/install/binaries
+
+```yaml
+- become: "yes"
+  name: Install docker
+  unarchive:
+    creates: /usr/local/bin/docker
+    dest: /usr/local/bin
+    extra_opts:
+      - "--strip-components=1"
+    remote_src: "yes"
+    src: >-
+      https://download.docker.com/linux/static/stable/x86_64/docker-19.03.9.tgz
+```
+
+Add user to `docker` group
+```sh
+$ sudo usermod -aG docker $USER
+```
+
+Logout and login
+
+# Typescript with bazel
+https://bazelbuild.github.io/rules_nodejs
+
+```sh
+$ yarn create @bazel my_bazel_tc_project
+$ cd my_bazel_tc_project
+$ yarn install
+$ yarn build
+```
+
+## Add typescript
+https://www.npmjs.com/package/@bazel/typescript
+
+```sh
+$ yarn add -D typescript @types/node @bazel/typescript
+$ touch tsconfig.json
+```
+
+Update `BUILD.bazel`
+```starlark
+BUILD.bazel
+---
+exports_files(
+    ["tsconfig.json"],
+    visibility = ["//visibility:public"],
+)
+
+package(default_visibility = ["//visibility:public"])
+
+load("@npm//@bazel/typescript:index.bzl", "ts_library")
+
+ts_library(
+    name = "index",
+    srcs = ["index.ts"],
+    deps = [
+        "@npm//@types/node",
+    ],
+)
+```
+
+## Add `rules_docker`
+https://github.com/bazelbuild/rules_docker
+
+```sh
+$ mv WORKSPACE.bazel WORKSPACE
+```
+
+Add the following lines to `WORKSPACE`
+```starlark
+WORKSPACE
+---
+...
+
+http_archive(
+    name = "io_bazel_rules_docker",
+    sha256 = "4521794f0fba2e20f3bf15846ab5e01d5332e587e9ce81629c7f96c793bb7036",
+    strip_prefix = "rules_docker-0.14.4",
+    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.14.4/rules_docker-v0.14.4.tar.gz"],
+)
+
+load(
+    "@io_bazel_rules_docker//repositories:repositories.bzl",
+    container_repositories = "repositories",
+)
+container_repositories()
+
+load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
+
+container_deps()
+
+load("@io_bazel_rules_docker//repositories:pip_repositories.bzl", "pip_deps")
+
+pip_deps()
+
+load(
+    "@io_bazel_rules_docker//nodejs:image.bzl",
+    _nodejs_image_repos = "repositories",
+)
+
+_nodejs_image_repos()
+```
+
+Add the following lines to `BUILD.bazel`
+```starlark
+BUILD.bazel
+---
+...
+
+load("@io_bazel_rules_docker//nodejs:image.bzl", "nodejs_image")
+
+nodejs_image(
+    name = "nodejs_image",
+    data = [
+        ":index",
+    ],
+    entry_point = "index.ts",
+)
+```
+
+## Run `index.js`
+```sh
+$ bazel build //:index
+$ node dist/bin/index.js
+```
+
+## Run nodejs image
+Start `dockerd`
+```sh
+$ sudo dockerd
+```
+
+```sh
+$ bazel run //:nodejs_image
+INFO: Invocation ID: d1c650cb-f93e-4793-b3ae-9f0cc210e05d
+INFO: Analyzed target //:nodejs_image (111 packages loaded, 7629 targets configured).
+INFO: Found 1 target...
+Target //:nodejs_image up-to-date:
+  dist/bin/nodejs_image-layer.tar
+INFO: Elapsed time: 2.291s, Critical Path: 0.78s
+INFO: 32 processes: 32 remote cache hit.
+INFO: Build completed successfully, 64 total actions
+INFO: Build completed successfully, 64 total actions
+Loaded image ID: sha256:484fba741352c3b252850d45a112001e064f8bbcc6670ad9e0871d3ac592616f
+Tagging 484fba741352c3b252850d45a112001e064f8bbcc6670ad9e0871d3ac592616f as bazel:nodejs_image
+Hello world
+```
