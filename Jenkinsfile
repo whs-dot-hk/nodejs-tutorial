@@ -2,7 +2,6 @@ podTemplate(yaml: """
 apiVersion: v1
 kind: Pod
 spec:
-  serviceAccountName: ecr
   containers:
   - name: bazel
     image: gcr.io/cloud-marketplace-containers/google/bazel@sha256:ace9881e6e9c5d48b5fd637321361aeffe54000265894a65f7d818dc1065bd80 # 3.5.0
