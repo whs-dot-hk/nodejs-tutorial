@@ -260,6 +260,7 @@ $ docker run -v/var/run/docker.sock:/var/run/docker.sock --network=host test run
 ```
 
 ## Jenkins
+https://github.com/jenkinsci/kubernetes-plugin
 ```groovy
 Jenkinsfile
 ---
